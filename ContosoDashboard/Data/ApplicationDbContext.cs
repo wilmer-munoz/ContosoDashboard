@@ -17,6 +17,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<ProjectMember> ProjectMembers { get; set; } = null!;
     public DbSet<Announcement> Announcements { get; set; } = null!;
+    public DbSet<Document> Documents { get; set; } = null!;
+    public DbSet<DocumentShare> DocumentShares { get; set; } = null!;
+    public DbSet<DocumentAuditLog> DocumentAuditLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +42,37 @@ public class ApplicationDbContext : DbContext
             .HasMany(u => u.ManagedProjects)
             .WithOne(p => p.ProjectManager)
             .HasForeignKey(p => p.ProjectManagerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Configure Document relationships
+        modelBuilder.Entity<Document>()
+            .HasOne(d => d.Uploader)
+            .WithMany()
+            .HasForeignKey(d => d.UploaderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Document>()
+            .HasOne(d => d.Project)
+            .WithMany()
+            .HasForeignKey(d => d.ProjectId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Document>()
+            .HasMany(d => d.Shares)
+            .WithOne(s => s.Document)
+            .HasForeignKey(s => s.DocumentId);
+
+        // Configure DocumentShare relationships
+        modelBuilder.Entity<DocumentShare>()
+            .HasOne(s => s.SharedWithUser)
+            .WithMany()
+            .HasForeignKey(s => s.SharedWithUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DocumentShare>()
+            .HasOne(s => s.SharedByUser)
+            .WithMany()
+            .HasForeignKey(s => s.SharedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Configure indexes for performance
@@ -64,12 +98,51 @@ public class ApplicationDbContext : DbContext
             .HasIndex(u => u.Email)
             .IsUnique();
 
+        modelBuilder.Entity<Document>()
+            .HasIndex(d => d.UploaderId);
+
+        modelBuilder.Entity<Document>()
+            .HasIndex(d => d.ProjectId);
+
+        modelBuilder.Entity<Document>()
+            .HasIndex(d => d.Category);
+
+        modelBuilder.Entity<DocumentShare>()
+            .HasIndex(s => s.DocumentId);
+
+        modelBuilder.Entity<DocumentShare>()
+            .HasIndex(s => s.SharedWithUserId);
+
+        // Configure DocumentAuditLog relationships
+        modelBuilder.Entity<DocumentAuditLog>()
+            .HasOne(a => a.Document)
+            .WithMany()
+            .HasForeignKey(a => a.DocumentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DocumentAuditLog>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DocumentAuditLog>()
+            .HasIndex(a => a.DocumentId);
+
+        modelBuilder.Entity<DocumentAuditLog>()
+            .HasIndex(a => a.UserId);
+
+        modelBuilder.Entity<DocumentAuditLog>()
+            .HasIndex(a => a.Timestamp);
+
         // Seed initial data
-        SeedData(modelBuilder);
+        // SeedData(modelBuilder);
     }
 
     private void SeedData(ModelBuilder modelBuilder)
     {
+        var baseDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
         // Seed an admin user
         modelBuilder.Entity<User>().HasData(
             new User
@@ -81,7 +154,7 @@ public class ApplicationDbContext : DbContext
                 JobTitle = "Administrator",
                 Role = UserRole.Administrator,
                 AvailabilityStatus = AvailabilityStatus.Available,
-                CreatedDate = DateTime.UtcNow,
+                CreatedDate = baseDate,
                 EmailNotificationsEnabled = true,
                 InAppNotificationsEnabled = true
             },
@@ -94,7 +167,7 @@ public class ApplicationDbContext : DbContext
                 JobTitle = "Project Manager",
                 Role = UserRole.ProjectManager,
                 AvailabilityStatus = AvailabilityStatus.Available,
-                CreatedDate = DateTime.UtcNow,
+                CreatedDate = baseDate,
                 EmailNotificationsEnabled = true,
                 InAppNotificationsEnabled = true
             },
@@ -107,7 +180,7 @@ public class ApplicationDbContext : DbContext
                 JobTitle = "Team Lead",
                 Role = UserRole.TeamLead,
                 AvailabilityStatus = AvailabilityStatus.Available,
-                CreatedDate = DateTime.UtcNow,
+                CreatedDate = baseDate,
                 EmailNotificationsEnabled = true,
                 InAppNotificationsEnabled = true
             },
@@ -120,7 +193,7 @@ public class ApplicationDbContext : DbContext
                 JobTitle = "Software Engineer",
                 Role = UserRole.Employee,
                 AvailabilityStatus = AvailabilityStatus.Available,
-                CreatedDate = DateTime.UtcNow,
+                CreatedDate = baseDate,
                 EmailNotificationsEnabled = true,
                 InAppNotificationsEnabled = true
             }
@@ -134,11 +207,11 @@ public class ApplicationDbContext : DbContext
                 Name = "ContosoDashboard Development",
                 Description = "Internal employee productivity dashboard",
                 ProjectManagerId = 2,
-                StartDate = DateTime.UtcNow.AddDays(-30),
-                TargetCompletionDate = DateTime.UtcNow.AddDays(60),
+                StartDate = baseDate.AddDays(-30),
+                TargetCompletionDate = baseDate.AddDays(60),
                 Status = ProjectStatus.Active,
-                CreatedDate = DateTime.UtcNow.AddDays(-30),
-                UpdatedDate = DateTime.UtcNow
+                CreatedDate = baseDate.AddDays(-30),
+                UpdatedDate = baseDate
             }
         );
 
@@ -151,12 +224,12 @@ public class ApplicationDbContext : DbContext
                 Description = "Create entity relationship diagram and database design",
                 Priority = TaskPriority.High,
                 Status = Models.TaskStatus.Completed,
-                DueDate = DateTime.UtcNow.AddDays(-20),
+                DueDate = baseDate.AddDays(-20),
                 AssignedUserId = 4,
                 CreatedByUserId = 2,
                 ProjectId = 1,
-                CreatedDate = DateTime.UtcNow.AddDays(-30),
-                UpdatedDate = DateTime.UtcNow.AddDays(-20)
+                CreatedDate = baseDate.AddDays(-30),
+                UpdatedDate = baseDate.AddDays(-20)
             },
             new TaskItem
             {
@@ -165,12 +238,12 @@ public class ApplicationDbContext : DbContext
                 Description = "Set up Microsoft Entra ID authentication",
                 Priority = TaskPriority.Critical,
                 Status = Models.TaskStatus.InProgress,
-                DueDate = DateTime.UtcNow.AddDays(5),
+                DueDate = baseDate.AddDays(5),
                 AssignedUserId = 4,
                 CreatedByUserId = 2,
                 ProjectId = 1,
-                CreatedDate = DateTime.UtcNow.AddDays(-25),
-                UpdatedDate = DateTime.UtcNow
+                CreatedDate = baseDate.AddDays(-25),
+                UpdatedDate = baseDate
             },
             new TaskItem
             {
@@ -179,12 +252,12 @@ public class ApplicationDbContext : DbContext
                 Description = "Design user interface mockups for all main pages",
                 Priority = TaskPriority.Medium,
                 Status = Models.TaskStatus.NotStarted,
-                DueDate = DateTime.UtcNow.AddDays(10),
+                DueDate = baseDate.AddDays(10),
                 AssignedUserId = 4,
                 CreatedByUserId = 2,
                 ProjectId = 1,
-                CreatedDate = DateTime.UtcNow.AddDays(-20),
-                UpdatedDate = DateTime.UtcNow.AddDays(-20)
+                CreatedDate = baseDate.AddDays(-20),
+                UpdatedDate = baseDate.AddDays(-20)
             }
         );
 
@@ -196,7 +269,7 @@ public class ApplicationDbContext : DbContext
                 ProjectId = 1,
                 UserId = 3,
                 Role = "TeamLead",
-                AssignedDate = DateTime.UtcNow.AddDays(-30)
+                AssignedDate = baseDate.AddDays(-30)
             },
             new ProjectMember
             {
@@ -204,7 +277,7 @@ public class ApplicationDbContext : DbContext
                 ProjectId = 1,
                 UserId = 4,
                 Role = "Developer",
-                AssignedDate = DateTime.UtcNow.AddDays(-30)
+                AssignedDate = baseDate.AddDays(-30)
             }
         );
 

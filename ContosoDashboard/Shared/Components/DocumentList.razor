@@ -1,0 +1,80 @@
+@using ContosoDashboard.Models
+@using ContosoDashboard.Services
+
+<div class="document-list">
+    @if (Documents == null || !Documents.Any())
+    {
+        <div class="text-center py-4">
+            <p class="text-muted">No documents found.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var doc in Documents)
+            {
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title text-truncate" title="@doc.Title">@doc.Title</h6>
+                            @if (!string.IsNullOrEmpty(doc.Description))
+                            {
+                                <p class="card-text small text-muted">@doc.Description</p>
+                            }
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-tag"></i> @doc.Category
+                                    </small>
+                                    <small class="text-muted">
+                                        @GetFileSizeString(doc.FileSize)
+                                    </small>
+                                </div>
+                                <small class="text-muted d-block">
+                                    Uploaded @doc.UploadDate.ToString("MMM dd, yyyy")
+                                </small>
+                                <div class="mt-2">
+                                    <button class="btn btn-outline-primary btn-sm me-1" @onclick="() => DownloadDocument(doc)">
+                                        <i class="bi bi-download"></i> Download
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" @onclick="() => ViewDetails(doc)">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<Document>? Documents { get; set; }
+    [Parameter] public EventCallback<Document> OnDownload { get; set; }
+    [Parameter] public EventCallback<Document> OnViewDetails { get; set; }
+
+    private async Task DownloadDocument(Document doc)
+    {
+        if (OnDownload.HasDelegate)
+        {
+            await OnDownload.InvokeAsync(doc);
+        }
+    }
+
+    private async Task ViewDetails(Document doc)
+    {
+        if (OnViewDetails.HasDelegate)
+        {
+            await OnViewDetails.InvokeAsync(doc);
+        }
+    }
+
+    private string GetFileSizeString(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024} KB";
+        return $"{bytes / (1024 * 1024)} MB";
+    }
+}

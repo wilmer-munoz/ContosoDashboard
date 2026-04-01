@@ -1,0 +1,124 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using ContosoDashboard.Services
+@using ContosoDashboard.Models
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="file-upload">
+    <InputFile OnChange="HandleFileSelected" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" />
+    
+    @if (SelectedFile != null)
+    {
+        <div class="file-info">
+            <p>Selected: @SelectedFile.Name (@GetFileSizeString(SelectedFile.Size))</p>
+            <button type="button" class="btn btn-primary" @onclick="UploadFile" disabled="@IsUploading">
+                @if (IsUploading)
+                {
+                    <span>Uploading... @Progress%</span>
+                }
+                else
+                {
+                    <span>Upload</span>
+                }
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Message))
+    {
+        <div class="alert @MessageClass">@Message</div>
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback<Document> OnDocumentUploaded { get; set; }
+    [Parameter] public int? ProjectId { get; set; }
+
+    [Inject] private IDocumentService DocumentService { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthProvider { get; set; } = null!;
+
+    private IBrowserFile? SelectedFile;
+    private bool IsUploading;
+    private int Progress;
+    private string Message = string.Empty;
+    private string MessageClass = string.Empty;
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        SelectedFile = e.File;
+        Message = string.Empty;
+    }
+
+    private async Task UploadFile()
+    {
+        if (SelectedFile == null) return;
+
+        IsUploading = true;
+        Progress = 0;
+        Message = string.Empty;
+
+        try
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (!user.Identity?.IsAuthenticated ?? true)
+            {
+                ShowError("User not authenticated");
+                return;
+            }
+
+            // Get user ID from claims
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                ShowError("Invalid user ID");
+                return;
+            }
+
+            var metadata = new DocumentMetadata
+            {
+                Title = Path.GetFileNameWithoutExtension(SelectedFile.Name),
+                Category = "General",
+                ProjectId = ProjectId
+            };
+
+            var document = await DocumentService.UploadDocumentAsync(
+                new FormFile(SelectedFile.OpenReadStream(), 0, SelectedFile.Size, SelectedFile.Name, SelectedFile.Name),
+                metadata,
+                userId
+            );
+
+            ShowSuccess("Document uploaded successfully");
+            await OnDocumentUploaded.InvokeAsync(document);
+            SelectedFile = null;
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Upload failed: {ex.Message}");
+        }
+        finally
+        {
+            IsUploading = false;
+            Progress = 0;
+        }
+    }
+
+    private void ShowSuccess(string msg)
+    {
+        Message = msg;
+        MessageClass = "alert-success";
+    }
+
+    private void ShowError(string msg)
+    {
+        Message = msg;
+        MessageClass = "alert-danger";
+    }
+
+    private string GetFileSizeString(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024} KB";
+        return $"{bytes / (1024 * 1024)} MB";
+    }
+}
