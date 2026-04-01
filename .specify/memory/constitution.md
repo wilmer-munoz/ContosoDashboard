@@ -1,50 +1,39 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: 0.0.0 → 1.0.0
+- List of modified principles: All principles defined (Security First, User-Centric Design, Data Integrity, Test-Driven Development, Simplicity and Maintainability)
+- Added sections: Development Workflow, Security Requirements
+- Removed sections: None
+- Templates requiring updates: None
+- Follow-up TODOs: None
+-->
+
+# ContosoDashboard Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Security First
+All features must prioritize security, implementing defense in depth with authentication, authorization, and data protection. This includes proper user isolation, role-based access control, and protection against common vulnerabilities like IDOR.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. User-Centric Design
+The dashboard must provide an intuitive, accessible interface that meets user needs efficiently. Focus on usability, responsive design, and clear navigation to ensure employees can manage projects, tasks, and documents effectively.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Data Integrity
+Ensure data consistency, validation, and protection against unauthorized access. All data operations must maintain referential integrity, validate inputs, and log changes for audit purposes.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Test-Driven Development
+Write tests before implementation, maintain high test coverage. Use unit tests for components, integration tests for workflows, and ensure all features are verifiable through automated testing.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Simplicity and Maintainability
+Keep code simple, well-documented, and easy to maintain. Follow clean architecture principles, avoid unnecessary complexity, and ensure code is readable and extensible for future training scenarios.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Security Requirements
+Technology stack must support secure development: Blazor Server with ASP.NET Core Identity (mock for training), Entity Framework Core for data access, and proper security headers. All external inputs must be validated, and sensitive data must be handled securely.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Development Workflow
+Follow Spec-Driven Development process: Create feature specs, implementation plans, tasks, and ensure compliance with this constitution. Code reviews must verify adherence to principles, and all changes must be tested before merging.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+This constitution supersedes all other practices for the ContosoDashboard project. Amendments require documentation of rationale, approval from project maintainers, and a migration plan for existing code. All PRs must verify compliance with these principles.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2024-01-01 | **Last Amended**: 2026-04-01
