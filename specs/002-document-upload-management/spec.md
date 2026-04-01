@@ -114,6 +114,7 @@ As a project manager, I want to manage document access for my projects so that t
 - Category values stored as text strings
 - DocumentId uses integer keys consistent with existing entities
 - FileType field accommodates up to 255 characters for MIME types
+- Role-based access control: Project managers can delete any project document; team leads can delete team documents; employees can only delete personal docs
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
 ## Success Criteria *(mandatory)*
