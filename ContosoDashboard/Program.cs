@@ -33,8 +33,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Ensure database is created and migrated
 using (var scope = builder.Services.BuildServiceProvider().CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    context.Database.Migrate();
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        // For development: Use EnsureCreated instead of Migrate to avoid migration issues
+        // context.Database.Migrate();
+        context.Database.EnsureCreated();
+        Console.WriteLine("Database created/updated successfully");
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred during database initialization");
+        Console.WriteLine($"Database error: {ex.Message}");
+    }
 }
 
 // Configure Mock Authentication (Cookie-based for training purposes)

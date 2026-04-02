@@ -136,7 +136,7 @@ public class ApplicationDbContext : DbContext
             .HasIndex(a => a.Timestamp);
 
         // Seed initial data
-        // SeedData(modelBuilder);
+        SeedData(modelBuilder);
     }
 
     private void SeedData(ModelBuilder modelBuilder)

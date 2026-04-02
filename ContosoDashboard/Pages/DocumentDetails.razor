@@ -288,7 +288,8 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading document: {ex.Message}");
+            ErrorMessage = $"Failed to load document: {ex.Message}";
+            SuccessMessage = string.Empty;
         }
         finally
         {
@@ -357,7 +358,7 @@
 
             await DocumentService.UpdateDocumentMetadataAsync(Document.Id, metadata, CurrentUserId);
             ShowEditModal = false;
-            SuccessMessage = "Document metadata updated successfully!";
+            SuccessMessage = "Document updated successfully!";
             ErrorMessage = string.Empty;
             await LoadDocument(); // Refresh the document data
         }
@@ -380,12 +381,8 @@
             await DocumentService.DeleteDocumentAsync(Document.Id, CurrentUserId);
             SuccessMessage = "Document deleted successfully!";
             ErrorMessage = string.Empty;
+            await Task.Delay(1000); // Give user time to see success message
             Navigation.NavigateTo("/documents");
-        }
-        catch (UnauthorizedAccessException)
-        {
-            ErrorMessage = "You don't have permission to delete this document.";
-            SuccessMessage = string.Empty;
         }
         catch (Exception ex)
         {

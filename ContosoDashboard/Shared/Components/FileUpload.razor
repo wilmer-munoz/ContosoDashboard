@@ -4,28 +4,96 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
 <div class="file-upload">
-    <InputFile OnChange="HandleFileSelected" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" />
-    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="fileInput" class="form-label">Select File</label>
+                <InputFile id="fileInput" OnChange="HandleFileSelected" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" />
+                @if (SelectedFile != null)
+                {
+                    <div class="mt-2">
+                        <small class="text-muted">Selected: @SelectedFile.Name (@GetFileSizeString(SelectedFile.Size))</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
     @if (SelectedFile != null)
     {
-        <div class="file-info">
-            <p>Selected: @SelectedFile.Name (@GetFileSizeString(SelectedFile.Size))</p>
-            <button type="button" class="btn btn-primary" @onclick="UploadFile" disabled="@IsUploading">
-                @if (IsUploading)
-                {
-                    <span>Uploading... @Progress%</span>
-                }
-                else
-                {
-                    <span>Upload</span>
-                }
-            </button>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Document Title *</label>
+                    <input id="title" type="text" class="form-control" @bind="Metadata.Title" required />
+                </div>
+                
+                <div class="mb-3">
+                    <label for="category" class="form-label">Category *</label>
+                    <select id="category" class="form-select" @bind="Metadata.Category" required>
+                        <option value="">Select a category</option>
+                        <option value="Project Documents">Project Documents</option>
+                        <option value="Team Resources">Team Resources</option>
+                        <option value="Personal Files">Personal Files</option>
+                        <option value="Reports">Reports</option>
+                        <option value="Presentations">Presentations</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="project" class="form-label">Associated Project (Optional)</label>
+                    <select id="project" class="form-select" @bind="Metadata.ProjectId">
+                        <option value="">No project association</option>
+                        @if (AvailableProjects != null)
+                        {
+                            @foreach (var project in AvailableProjects)
+                            {
+                                <option value="@project.ProjectId">@project.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description (Optional)</label>
+                    <textarea id="description" class="form-control" rows="3" @bind="Metadata.Description" placeholder="Enter a description for this document..."></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="tags" class="form-label">Tags (Optional)</label>
+                    <input id="tags" type="text" class="form-control" @bind="Metadata.Tags" placeholder="Enter tags separated by commas" />
+                    <div class="form-text">Example: important, draft, review</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <button type="button" class="btn btn-primary" @onclick="UploadFile" disabled="@(IsUploading || string.IsNullOrWhiteSpace(Metadata.Title) || string.IsNullOrWhiteSpace(Metadata.Category))">
+                    @if (IsUploading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span>Uploading... @Progress%</span>
+                    }
+                    else
+                    {
+                        <span><i class="bi bi-upload me-2"></i>Upload Document</span>
+                    }
+                </button>
+            </div>
         </div>
     }
 
     @if (!string.IsNullOrEmpty(Message))
     {
-        <div class="alert @MessageClass">@Message</div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="alert @MessageClass">@Message</div>
+            </div>
+        </div>
     }
 </div>
 
@@ -34,6 +102,7 @@
     [Parameter] public int? ProjectId { get; set; }
 
     [Inject] private IDocumentService DocumentService { get; set; } = null!;
+    [Inject] private IProjectService ProjectService { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthProvider { get; set; } = null!;
 
     private IBrowserFile? SelectedFile;
@@ -41,16 +110,52 @@
     private int Progress;
     private string Message = string.Empty;
     private string MessageClass = string.Empty;
+    private DocumentMetadata Metadata = new();
+    private IEnumerable<Project>? AvailableProjects;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAvailableProjects();
+    }
+
+    private async Task LoadAvailableProjects()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out var userId))
+            {
+                // Load projects where user is a member or manager
+                AvailableProjects = await ProjectService.GetUserProjectsAsync(userId);
+            }
+        }
+    }
 
     private void HandleFileSelected(InputFileChangeEventArgs e)
     {
         SelectedFile = e.File;
         Message = string.Empty;
+        
+        // Pre-fill title with filename (user can edit)
+        if (SelectedFile != null && string.IsNullOrWhiteSpace(Metadata.Title))
+        {
+            Metadata.Title = Path.GetFileNameWithoutExtension(SelectedFile.Name);
+        }
+        
+        // Set default project if provided
+        if (ProjectId.HasValue && !Metadata.ProjectId.HasValue)
+        {
+            Metadata.ProjectId = ProjectId.Value;
+        }
     }
 
     private async Task UploadFile()
     {
-        if (SelectedFile == null) return;
+        if (SelectedFile == null || string.IsNullOrWhiteSpace(Metadata.Title) || string.IsNullOrWhiteSpace(Metadata.Category))
+            return;
 
         IsUploading = true;
         Progress = 0;
@@ -75,22 +180,22 @@
                 return;
             }
 
-            var metadata = new DocumentMetadata
+            // Create FormFile from IBrowserFile
+            using var stream = SelectedFile.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024); // 25 MB limit
+            var formFile = new FormFile(stream, 0, SelectedFile.Size, SelectedFile.Name, SelectedFile.Name)
             {
-                Title = Path.GetFileNameWithoutExtension(SelectedFile.Name),
-                Category = "General",
-                ProjectId = ProjectId
+                Headers = new HeaderDictionary(),
+                ContentType = SelectedFile.ContentType
             };
 
-            var document = await DocumentService.UploadDocumentAsync(
-                new FormFile(SelectedFile.OpenReadStream(), 0, SelectedFile.Size, SelectedFile.Name, SelectedFile.Name),
-                metadata,
-                userId
-            );
+            var document = await DocumentService.UploadDocumentAsync(formFile, Metadata, userId);
 
-            ShowSuccess("Document uploaded successfully");
+            ShowSuccess("Document uploaded successfully!");
             await OnDocumentUploaded.InvokeAsync(document);
+            
+            // Reset form
             SelectedFile = null;
+            Metadata = new DocumentMetadata();
         }
         catch (Exception ex)
         {
@@ -118,7 +223,7 @@
     private string GetFileSizeString(long bytes)
     {
         if (bytes < 1024) return $"{bytes} B";
-        if (bytes < 1024 * 1024) return $"{bytes / 1024} KB";
-        return $"{bytes / (1024 * 1024)} MB";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024 * 1024.0):F1} MB";
     }
 }

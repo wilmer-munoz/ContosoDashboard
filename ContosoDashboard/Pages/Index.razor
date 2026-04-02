@@ -129,7 +129,7 @@
                 <div class="list-group">
                     @foreach (var document in recentDocuments)
                     {
-                        <a href="/document-details/@document.Id" class="list-group-item list-group-item-action">
+                        <a href="/documents/@document.Id" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">@document.Title</h6>
                                 <small>@GetRelativeTime(document.UploadDate)</small>

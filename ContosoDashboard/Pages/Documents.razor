@@ -2,6 +2,7 @@
 @using ContosoDashboard.Services
 @using ContosoDashboard.Models
 @using Microsoft.AspNetCore.Components.Authorization
+@using ContosoDashboard.Shared.Components
 @inject IDocumentService DocumentService
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
@@ -213,9 +214,15 @@
 
     private async Task DownloadDocument(Document doc)
     {
-        // Implement download
-        // For now, show message
-        Console.WriteLine($"Download requested for: {doc.Title}");
+        try
+        {
+            // Navigate to the API download endpoint
+            Navigation.NavigateTo($"/api/documents/{doc.Id}/download", true);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to download document: {ex.Message}";
+        }
     }
 
     private void ViewDetails(Document doc)
